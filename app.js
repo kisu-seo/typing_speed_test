@@ -46,9 +46,11 @@ const resultsMessageEl = document.getElementById('results-message');
 const resultsTitleEl = document.getElementById('results-title');
 const goAgainBtn = document.getElementById('go-again-btn');
 
-// 드롭다운 셀렉트 박스
-const difficultySelect = document.getElementById('difficulty-select');
-const modeSelect = document.getElementById('mode-select');
+// 드롭다운 셀렉트 박스 (커스텀 listbox)
+const difficultyTrigger = document.getElementById('difficulty-trigger');
+const difficultyListbox = document.getElementById('difficulty-listbox');
+const modeTrigger = document.getElementById('mode-trigger');
+const modeListbox = document.getElementById('mode-listbox');
 
 // --- Initialize Application ---
 async function init() {
@@ -382,32 +384,70 @@ function triggerConfetti() {
   }
 }
 
+// 커스텀 드롭다운(listbox) 동작 설정
+function setupDropdown(trigger, listbox, getValue, setValue, confirmMessage) {
+  function close() {
+    listbox.hidden = true;
+    trigger.setAttribute('aria-expanded', 'false');
+  }
+  function open() {
+    listbox.hidden = false;
+    trigger.setAttribute('aria-expanded', 'true');
+  }
+  trigger.addEventListener('click', () => {
+    if (listbox.hidden) open(); else close();
+  });
+  listbox.addEventListener('click', (e) => {
+    const option = e.target.closest('li[role="option"]');
+    if (!option) return;
+    const newValue = option.dataset.value;
+    if (newValue === getValue()) {
+      close();
+      return;
+    }
+    if (testState.isActive && !confirm(confirmMessage)) {
+      close();
+      return;
+    }
+    listbox.querySelectorAll('li').forEach((li) => {
+      const selected = li === option;
+      li.setAttribute('aria-selected', String(selected));
+      li.tabIndex = selected ? 0 : -1;
+      li.querySelector('.radio-dot').classList.toggle('filled', selected);
+    });
+    trigger.querySelector('.select-trigger-label').textContent = option.textContent.trim();
+    setValue(newValue);
+    close();
+    resetTest();
+  });
+  document.addEventListener('click', (e) => {
+    if (!trigger.contains(e.target) && !listbox.contains(e.target)) close();
+  });
+  trigger.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') close();
+  });
+}
+
 // --- Event Handlers & Setups ---
 function setupEventListeners() {
-  // 난이도 select 변경 리스너
-  difficultySelect.addEventListener('change', (e) => {
-    if (testState.isActive) {
-      if (!confirm('현재 테스트가 진행 중입니다. 난이도를 변경하고 다시 시작하시겠습니까?')) {
-        difficultySelect.value = testState.difficulty;
-        return;
-      }
-    }
-    testState.difficulty = e.target.value;
-    resetTest();
-  });
-  
-  // 모드 select 변경 리스너
-  modeSelect.addEventListener('change', (e) => {
-    if (testState.isActive) {
-      if (!confirm('현재 테스트가 진행 중입니다. 모드를 변경하고 다시 시작하시겠습니까?')) {
-        modeSelect.value = testState.mode;
-        return;
-      }
-    }
-    testState.mode = e.target.value;
-    resetTest();
-  });
-  
+  // 난이도 드롭다운
+  setupDropdown(
+    difficultyTrigger,
+    difficultyListbox,
+    () => testState.difficulty,
+    (value) => { testState.difficulty = value; },
+    '현재 테스트가 진행 중입니다. 난이도를 변경하고 다시 시작하시겠습니까?'
+  );
+
+  // 모드 드롭다운
+  setupDropdown(
+    modeTrigger,
+    modeListbox,
+    () => testState.mode,
+    (value) => { testState.mode = value; },
+    '현재 테스트가 진행 중입니다. 모드를 변경하고 다시 시작하시겠습니까?'
+  );
+
   // 오버레이 및 지문 클릭 시 블러 제거 및 타이핑 활성화
   const deactivateOverlay = () => {
     if (passageOuterContainer.classList.contains('not-started')) {

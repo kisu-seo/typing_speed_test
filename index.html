@@ -31,38 +31,44 @@
       <!-- 실시간 타자 통계 보드 -->
       <section class="stats-panel" aria-label="실시간 통계 보드">
         <div class="stat-card" aria-live="polite">
-          <span class="stat-label">WPM</span>
+          <span class="stat-label">WPM:</span>
           <span class="stat-value" id="live-wpm">0</span>
         </div>
         <div class="stat-divider" aria-hidden="true"></div>
         <div class="stat-card" aria-live="polite">
-          <span class="stat-label">Accuracy</span>
+          <span class="stat-label">Accuracy:</span>
           <span class="stat-value" id="live-accuracy">100%</span>
         </div>
         <div class="stat-divider" aria-hidden="true"></div>
         <div class="stat-card" aria-live="polite">
-          <span class="stat-label">Time</span>
+          <span class="stat-label">Time:</span>
           <span class="stat-value" id="live-time">0:60</span>
         </div>
       </section>
 
-      <!-- 설정을 제어하는 상단 바 (드롭다운 형태) -->
+      <!-- 설정을 제어하는 상단 바 (커스텀 드롭다운 형태) -->
       <section class="control-panel" aria-label="테스트 설정 패널">
-        <div class="select-wrapper">
-          <select id="difficulty-select" aria-label="난이도 선택">
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard" selected>Hard</option>
-          </select>
-          <span class="select-arrow" aria-hidden="true"></span>
+        <div class="select-wrapper" id="difficulty-dropdown">
+          <button type="button" class="select-trigger" id="difficulty-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="difficulty-listbox" aria-label="난이도 선택">
+            <span class="select-trigger-label">Hard</span>
+            <img src="./assets/images/icon-down-arrow.svg" alt="" class="select-arrow">
+          </button>
+          <ul class="select-listbox" id="difficulty-listbox" role="listbox" aria-label="난이도 선택" tabindex="-1" hidden>
+            <li role="option" data-value="easy" tabindex="-1"><span class="radio-dot" aria-hidden="true"></span>Easy</li>
+            <li role="option" data-value="medium" tabindex="-1"><span class="radio-dot" aria-hidden="true"></span>Medium</li>
+            <li role="option" data-value="hard" aria-selected="true" tabindex="0"><span class="radio-dot filled" aria-hidden="true"></span>Hard</li>
+          </ul>
         </div>
 
-        <div class="select-wrapper">
-          <select id="mode-select" aria-label="모드 선택">
-            <option value="timed">Timed (60s)</option>
-            <option value="passage">Passage</option>
-          </select>
-          <span class="select-arrow" aria-hidden="true"></span>
+        <div class="select-wrapper" id="mode-dropdown">
+          <button type="button" class="select-trigger" id="mode-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="mode-listbox" aria-label="모드 선택">
+            <span class="select-trigger-label">Timed (60s)</span>
+            <img src="./assets/images/icon-down-arrow.svg" alt="" class="select-arrow">
+          </button>
+          <ul class="select-listbox" id="mode-listbox" role="listbox" aria-label="모드 선택" tabindex="-1" hidden>
+            <li role="option" data-value="timed" aria-selected="true" tabindex="0"><span class="radio-dot filled" aria-hidden="true"></span>Timed (60s)</li>
+            <li role="option" data-value="passage" tabindex="-1"><span class="radio-dot" aria-hidden="true"></span>Passage</li>
+          </ul>
         </div>
       </section>
 
