@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Typing Speed Test</title>
+  
+  <!-- === Fonts & Styles === -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+  
+  <!-- === External Scripts === -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+</head>
+
+<body>
+  <div class="app-container">
+    <!-- === Navigation / Header === -->
+    <header class="app-header">
+      <img src="./assets/images/logo-small.svg" alt="TypeDash 로고" class="logo">
+      <div class="personal-best-badge" id="personal-best-display" aria-label="개인 최고 기록">
+        <img src="./assets/images/icon-personal-best.svg" alt="" class="pb-icon"><span class="best-label">Best:</span><span id="pb-wpm">0 WPM</span>
+      </div>
+    </header>
+
+    <!-- === Main Typing Arena === -->
+    <main class="app-main" id="typing-arena">
+      <!-- 실시간 타자 통계 보드 -->
+      <section class="stats-panel" aria-label="실시간 통계 보드">
+        <div class="stat-card" aria-live="polite">
+          <span class="stat-label">WPM</span>
+          <span class="stat-value" id="live-wpm">0</span>
+        </div>
+        <div class="stat-divider" aria-hidden="true"></div>
+        <div class="stat-card" aria-live="polite">
+          <span class="stat-label">Accuracy</span>
+          <span class="stat-value" id="live-accuracy">100%</span>
+        </div>
+        <div class="stat-divider" aria-hidden="true"></div>
+        <div class="stat-card" aria-live="polite">
+          <span class="stat-label">Time</span>
+          <span class="stat-value" id="live-time">0:60</span>
+        </div>
+      </section>
+
+      <!-- 설정을 제어하는 상단 바 (드롭다운 형태) -->
+      <section class="control-panel" aria-label="테스트 설정 패널">
+        <div class="select-wrapper">
+          <select id="difficulty-select" aria-label="난이도 선택">
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard" selected>Hard</option>
+          </select>
+          <span class="select-arrow" aria-hidden="true"></span>
+        </div>
+
+        <div class="select-wrapper">
+          <select id="mode-select" aria-label="모드 선택">
+            <option value="timed">Timed (60s)</option>
+            <option value="passage">Passage</option>
+          </select>
+          <span class="select-arrow" aria-hidden="true"></span>
+        </div>
+      </section>
+
+      <!-- 타이핑 지문 영역 (시작 전에는 not-started 클래스 부여) -->
+      <section class="passage-outer-container not-started" id="passage-outer-container">
+        <!-- 텍스트 입력을 감지하기 위한 숨겨진 입력창 -->
+        <textarea 
+          id="hidden-input" 
+          class="hidden-input" 
+          aria-label="타이핑을 시작하려면 이곳을 클릭하고 입력하세요."
+          autocomplete="off" 
+          autocorrect="off" 
+          autocapitalize="off" 
+          spellcheck="false"
+        ></textarea>
+        
+        <div 
+          id="passage-container" 
+          class="passage-container" 
+          tabindex="0" 
+          role="textbox" 
+          aria-multiline="true"
+          aria-label="타이핑 지문 영역."
+        >
+          <!-- JavaScript에 의해 문자 단위 <span>이 채워집니다. -->
+        </div>
+
+        <!-- 시작 전 블러 상태에서 보일 오버레이 -->
+        <div class="passage-overlay" id="passage-overlay">
+          <button type="button" id="start-test-btn" class="btn-start" aria-label="타이핑 테스트 시작">Start Typing Test</button>
+          <span class="overlay-subtext">Or click the text and start typing</span>
+        </div>
+      </section>
+
+      <!-- 제어 및 재시작 버튼 -->
+      <div class="action-panel">
+        <button id="restart-btn" class="btn-primary" aria-label="테스트 재시작 및 새로운 지문 불러오기">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M12 4V1L8 5L12 9V6C15.31 6 18 8.69 18 12C18 13.01 17.75 13.97 17.3 14.8L18.8 16.3C19.57 15.05 20 13.58 20 12C20 7.58 16.42 4 12 4ZM12 18C8.69 18 6 15.31 6 12C6 10.99 6.25 10.03 6.7 9.2L5.2 7.7C4.43 8.95 4 10.42 4 12C4 16.42 7.58 20 12 20V23L16 19L12 15V18Z" fill="currentColor"/>
+          </svg>
+          <span>Restart Test</span>
+        </button>
+      </div>
+    </main>
+
+    <!-- === Test Results Overlay/Section === -->
+    <section class="app-main hidden" id="results-screen" aria-labelledby="results-title">
+      <div class="results-header">
+        <h1 id="results-title" class="results-heading">Test Complete!</h1>
+        <p class="results-subheading" id="results-message">Solid run. Keep pushing to beat your high score.</p>
+      </div>
+
+      <!-- 결과 수치 패널 -->
+      <div class="results-grid">
+        <div class="result-card highlight">
+          <span class="result-label">WPM</span>
+          <span class="result-value" id="result-wpm">0</span>
+        </div>
+        <div class="result-card">
+          <span class="result-label">Accuracy</span>
+          <span class="result-value" id="result-accuracy">0%</span>
+        </div>
+        <div class="result-card">
+          <span class="result-label">Correct Chars</span>
+          <span class="result-value text-green" id="result-correct-chars">0</span>
+        </div>
+        <div class="result-card">
+          <span class="result-label">Incorrect Chars</span>
+          <span class="result-value text-red" id="result-incorrect-chars">0</span>
+        </div>
+      </div>
+
+      <!-- 하단 제어 -->
+      <div class="action-panel">
+        <button id="go-again-btn" class="btn-primary" aria-label="새로운 테스트 시작하기">
+          <span>Go Again</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M5 13H16.17L11.29 17.88L12.71 19.3L20 12L12.71 4.7L11.29 6.12L16.17 11H5V13Z" fill="currentColor"/>
+          </svg>
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <!-- === Application Logic === -->
+  <script type="module" src="./app.js"></script>
+</body>
+
+</html>
