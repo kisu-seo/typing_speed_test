@@ -42,6 +42,8 @@ const resultWpmEl = document.getElementById('result-wpm');
 const resultAccuracyEl = document.getElementById('result-accuracy');
 const resultCorrectCharsEl = document.getElementById('result-correct-chars');
 const resultIncorrectCharsEl = document.getElementById('result-incorrect-chars');
+const resultCorrectCharsCombinedEl = document.getElementById('result-correct-chars-combined');
+const resultIncorrectCharsCombinedEl = document.getElementById('result-incorrect-chars-combined');
 const resultsMessageEl = document.getElementById('results-message');
 const resultsTitleEl = document.getElementById('results-title');
 const goAgainBtn = document.getElementById('go-again-btn');
@@ -71,10 +73,9 @@ async function init() {
 // --- LocalStorage Logic ---
 function loadPersonalBest() {
   const pb = localStorage.getItem(LOCAL_STORAGE_PB_KEY);
-  if (pb !== null) {
-    pbWpmEl.textContent = `${pb} WPM`;
-  } else {
-    pbWpmEl.textContent = '0 WPM';
+  const el = document.getElementById('pb-wpm') || pbWpmEl;
+  if (el) {
+    el.textContent = pb !== null ? `${pb} WPM` : '0 WPM';
   }
 }
 
@@ -85,7 +86,10 @@ function getPersonalBest() {
 
 function savePersonalBest(newWpm) {
   localStorage.setItem(LOCAL_STORAGE_PB_KEY, newWpm.toString());
-  pbWpmEl.textContent = `${newWpm} WPM`;
+  const el = document.getElementById('pb-wpm') || pbWpmEl;
+  if (el) {
+    el.textContent = `${newWpm} WPM`;
+  }
 }
 
 // --- Core Helper Functions ---
@@ -94,7 +98,7 @@ function getRandomPassage(difficulty) {
   const list = passagesData[difficulty];
   const randomIndex = Math.floor(Math.random() * list.length);
   currentPassageId = list[randomIndex].id;
-  return list[randomIndex].text;
+  return list[randomIndex].text.trim();
 }
 
 function renderPassageText() {
@@ -163,12 +167,17 @@ function resetTest() {
   // 오버레이 및 인터페이스 복원
   passageOuterContainer.classList.add('not-started');
   typingArena.classList.remove('hidden');
+  typingArena.classList.remove('test-active');
   resultsScreen.classList.add('hidden');
+  resultsScreen.classList.remove('new-high-score');
 }
 
 function startTest() {
   testState.isActive = true;
   testState.startTime = new Date();
+  
+  // 타이핑 테스트 시작 후 상태 클래스 추가
+  typingArena.classList.add('test-active');
   
   if (testState.mode === 'timed') {
     testState.timerInterval = setInterval(updateTimedMode, 1000);
@@ -298,61 +307,74 @@ function handleTypingInput(e) {
   // 실시간 수치 업데이트
   updateLiveStats();
   
-  // Passage 모드인 경우 지문을 다 쳤고 오타가 하나도 안 남은 시점에서 끝내거나 전체 완료 여부 판정
-  if (testState.mode === 'passage' && testState.currentIndex >= targetLength) {
-    const allCorrect = testState.typedCharacters.every(item => item && item.correct);
-    if (allCorrect) {
-      endTest();
-    }
+  // 모든 글자를 입력하면 오타 여부와 무관하게 테스트 종료
+  if (testState.currentIndex >= targetLength) {
+    endTest();
   }
 }
 
 function endTest() {
-  testState.isActive = false;
-  testState.isFinished = true;
-  clearInterval(testState.timerInterval);
-  
-  // 최종 WPM 및 정확도 산정
-  let elapsedMinutes = 1;
-  if (testState.startTime) {
-    elapsedMinutes = (new Date() - testState.startTime) / 60000;
-  }
-  if (elapsedMinutes <= 0) elapsedMinutes = 0.01;
-  
-  const finalWpm = Math.round((testState.correctCharsCount / 5) / elapsedMinutes);
-  
-  const totalTypedAttempts = testState.correctCharsCount + testState.totalErrors;
-  const finalAccuracy = totalTypedAttempts > 0 
-    ? Math.round((testState.correctCharsCount / totalTypedAttempts) * 100) 
-    : 0;
+  try {
+    testState.isActive = false;
+    testState.isFinished = true;
+    clearInterval(testState.timerInterval);
     
-  // 결과 수치 주입
-  resultWpmEl.textContent = finalWpm;
-  resultAccuracyEl.textContent = `${finalAccuracy}%`;
-  resultCorrectCharsEl.textContent = testState.correctCharsCount;
-  resultIncorrectCharsEl.textContent = testState.totalErrors;
-  
-  // 최고 기록(Personal Best) 점검
-  const currentPb = getPersonalBest();
-  const isFirst = localStorage.getItem(LOCAL_STORAGE_PB_KEY) === null;
-  
-  if (isFirst) {
-    savePersonalBest(finalWpm);
-    resultsTitleEl.textContent = 'Baseline Established!';
-    resultsMessageEl.textContent = `Your starting personal best is set at ${finalWpm} WPM. Keep practicing to beat it!`;
-  } else if (finalWpm > currentPb) {
-    savePersonalBest(finalWpm);
-    resultsTitleEl.textContent = 'High Score Smashed!';
-    resultsMessageEl.textContent = `Amazing! You destroyed your previous personal best of ${currentPb} WPM.`;
-    triggerConfetti();
-  } else {
-    resultsTitleEl.textContent = 'Test Complete!';
-    resultsMessageEl.textContent = `Solid run. Keep pushing to beat your personal best of ${currentPb} WPM.`;
+    // 최종 WPM 및 정확도 산정
+    let elapsedMinutes = 1;
+    if (testState.startTime) {
+      elapsedMinutes = (new Date() - testState.startTime) / 60000;
+    }
+    if (elapsedMinutes <= 0) elapsedMinutes = 0.01;
+    
+    const finalWpm = Math.round((testState.correctCharsCount / 5) / elapsedMinutes);
+    
+    const totalTypedAttempts = testState.correctCharsCount + testState.totalErrors;
+    const finalAccuracy = totalTypedAttempts > 0 
+      ? Math.round((testState.correctCharsCount / totalTypedAttempts) * 100) 
+      : 0;
+      
+    // 결과 수치 주입
+    resultWpmEl.textContent = finalWpm;
+    resultAccuracyEl.textContent = `${finalAccuracy}%`;
+    resultCorrectCharsEl.textContent = testState.correctCharsCount;
+    resultIncorrectCharsEl.textContent = testState.totalErrors;
+    
+    // 모바일 하이스코어 전용 통합 캐릭터 데이터 주입
+    if (resultCorrectCharsCombinedEl) {
+      resultCorrectCharsCombinedEl.textContent = testState.correctCharsCount;
+    }
+    if (resultIncorrectCharsCombinedEl) {
+      resultIncorrectCharsCombinedEl.textContent = testState.totalErrors;
+    }
+    
+    // 최고 기록(Personal Best) 점검
+    const currentPb = getPersonalBest();
+    const isFirst = localStorage.getItem(LOCAL_STORAGE_PB_KEY) === null;
+    
+    if (isFirst) {
+      savePersonalBest(finalWpm);
+      resultsScreen.classList.add('new-high-score');
+      resultsTitleEl.textContent = 'Baseline Established!';
+      resultsMessageEl.textContent = 'You’re getting faster. That was incredible typing.';
+    } else if (finalWpm > currentPb) {
+      savePersonalBest(finalWpm);
+      resultsScreen.classList.add('new-high-score');
+      resultsTitleEl.textContent = 'High Score Smashed!';
+      resultsMessageEl.textContent = 'You’re getting faster. That was incredible typing.';
+      triggerConfetti();
+    } else {
+      resultsScreen.classList.remove('new-high-score');
+      resultsTitleEl.textContent = 'Test Complete!';
+      resultsMessageEl.textContent = `Solid run. Keep pushing to beat your personal best of ${currentPb} WPM.`;
+    }
+    
+    // 스크린 교체
+    typingArena.classList.add('hidden');
+    resultsScreen.classList.remove('hidden');
+  } catch (error) {
+    console.error("endTest 실행 중 에러 발생:", error);
+    alert("테스트 종료 중 오류가 발생했습니다:\n" + error.message + "\n\n스택:\n" + error.stack);
   }
-  
-  // 스크린 교체
-  typingArena.classList.add('hidden');
-  resultsScreen.classList.remove('hidden');
 }
 
 // --- Confetti Celebration Effect ---
@@ -366,14 +388,14 @@ function triggerConfetti() {
         particleCount: 4,
         angle: 60,
         spread: 55,
-        origin: { x: 0 },
+        origin: { x: 0, y: 1 },
         colors: ['#177DFF', '#4CA6FF', '#F4DC73', '#4DD67B']
       });
       confetti({
         particleCount: 4,
         angle: 120,
         spread: 55,
-        origin: { x: 1 },
+        origin: { x: 1, y: 1 },
         colors: ['#177DFF', '#4CA6FF', '#F4DC73', '#4DD67B']
       });
 
@@ -480,3 +502,16 @@ function setupEventListeners() {
 
 // 앱 구동 시작
 document.addEventListener('DOMContentLoaded', init);
+
+// --- Debug Helpers ---
+window.clearPB = function() {
+  localStorage.removeItem(LOCAL_STORAGE_PB_KEY);
+  console.log("Personal Best 기록이 초기화되었습니다.");
+  loadPersonalBest();
+};
+
+// 글로벌 에러 핸들러
+window.onerror = function(message, source, lineno, colno, error) {
+  alert("런타임 에러 감지됨:\n" + message + "\n출처: " + source + " (Line " + lineno + ")\n\n상세: " + (error ? error.stack : 'N/A'));
+  return false;
+};
